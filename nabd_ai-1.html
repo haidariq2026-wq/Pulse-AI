@@ -1,0 +1,2195 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>نبض AI</title>
+<style>
+  :root{
+    --bg:#0a1420;
+    --bg2:#0f1c2b;
+    --pulse:#00e6a8;
+    --pulse-dim:#00a37a;
+    --text:#eaf6f1;
+    --muted:#7fa89b;
+    --card:#0f2233;
+    --danger:#ff6b6b;
+    --border:#17324a;
+    --bubble-user:#0f3a2f;
+    --bubble-bot:#0f2233;
+    --menu-bg:#2a2b32;
+    --menu-border:#3f4046;
+    --menu-text:#ececf1;
+    --menu-hover:rgba(255,255,255,.08);
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#ffffff;
+      --bg2:#f2f6f5;
+      --pulse:#00b386;
+      --pulse-dim:#009973;
+      --text:#0a1420;
+      --muted:#5b6b66;
+      --card:#f5f8f7;
+      --danger:#e04545;
+      --border:#dbe6e2;
+      --bubble-user:#d9f2ea;
+      --bubble-bot:#f0f2f1;
+      --menu-bg:#ffffff;
+      --menu-border:#e2e5e4;
+      --menu-text:#1a1a1a;
+      --menu-hover:#f0f2f1;
+    }
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', Tahoma, Arial, sans-serif;
+    background:radial-gradient(circle at 50% 0%, var(--bg2), var(--bg) 70%);
+    color:var(--text);
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+
+  /* ---------- shared pulse header ---------- */
+  .pulse-line{width:100%;height:34px;margin-top:8px;}
+  .pulse-line svg{width:100%;height:100%;}
+  .pulse-path{
+    fill:none;
+    stroke:var(--pulse);
+    stroke-width:2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    filter:drop-shadow(0 0 4px var(--pulse));
+    stroke-dasharray:400;
+    stroke-dashoffset:400;
+    animation:draw 2.4s linear infinite;
+  }
+  @keyframes draw{to{stroke-dashoffset:0;}}
+
+  /* ---------- LOGIN SCREEN ---------- */
+  #loginScreen{
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    padding:24px;
+    transition:opacity .5s ease, transform .5s ease;
+  }
+  #loginScreen.hide{
+    opacity:0 !important;
+    transform:translateY(-20px);
+    pointer-events:none;
+    position:absolute;
+    inset:0;
+  }
+  .logo-title{
+    font-size:34px;
+    font-weight:bold;
+    background:linear-gradient(90deg, var(--pulse), #7fffd4);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    letter-spacing:1px;
+  }
+  .logo-sub{
+    color:var(--muted);
+    font-size:13px;
+    margin-top:4px;
+    text-align:center;
+  }
+  .login-card{
+    width:100%;
+    max-width:360px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:24px;
+    margin-top:28px;
+  }
+  .field{
+    margin-bottom:14px;
+  }
+  .field label{
+    display:block;
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  .field input{
+    width:100%;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:10px;
+    color:var(--text);
+    padding:12px;
+    font-size:14px;
+  }
+  .field input:focus{
+    outline:none;
+    border-color:var(--pulse-dim);
+  }
+  .login-btn{
+    width:100%;
+    margin-top:6px;
+    background:linear-gradient(90deg, var(--pulse-dim), var(--pulse));
+    border:none;
+    color:#00251a;
+    font-weight:bold;
+    font-size:16px;
+    padding:14px;
+    border-radius:12px;
+    cursor:pointer;
+  }
+  .login-btn:active{transform:scale(.98);}
+  .login-error{
+    color:var(--danger);
+    font-size:12px;
+    margin-top:10px;
+    text-align:center;
+    min-height:14px;
+  }
+  .msg{position:relative;}
+
+  .gpt-context-menu{
+    position:fixed;
+    z-index:2000;
+    width:190px;
+    background:var(--menu-bg);
+    border:1px solid var(--menu-border);
+    border-radius:12px;
+    padding:6px;
+    box-shadow:0 8px 24px rgba(0,0,0,.35);
+  }
+  .gcm-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 12px;
+    color:var(--menu-text);
+    font-size:14px;
+    border-radius:8px;
+    cursor:pointer;
+  }
+  .gcm-item:active{background:var(--menu-hover);}
+  .gcm-icon{font-size:15px; width:18px; text-align:center;}
+  .gcm-sep{height:1px; background:var(--menu-border); margin:4px 6px;}
+  .gcm-item.danger{color:#ff5c5c;}
+
+  .toggle-mode{
+    text-align:center;
+    margin-top:16px;
+    font-size:13px;
+    color:var(--muted);
+  }
+  .toggle-mode span{
+    color:var(--pulse);
+    cursor:pointer;
+    font-weight:bold;
+  }
+
+  /* ---------- CHAT SCREEN ---------- */
+  #chatScreen{
+    display:none;
+    min-height:100vh;
+    flex-direction:column;
+  }
+  #chatScreen.show{display:flex;}
+
+  header.chat-header{
+    text-align:center;
+    padding:18px 16px 6px;
+    position:relative;
+  }
+  header.chat-header h1{
+    margin:0;
+    font-size:22px;
+    background:linear-gradient(90deg, var(--pulse), #7fffd4);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  header.chat-header .user-tag{
+    color:var(--muted);
+    font-size:12px;
+    margin-top:4px;
+  }
+  .header-left-btns{
+    position:absolute;
+    left:14px;
+    top:18px;
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .logout-btn{
+    background:none;
+    border:1px solid var(--border);
+    color:var(--muted);
+    font-size:11px;
+    padding:6px 10px;
+    border-radius:8px;
+    cursor:pointer;
+  }
+  .new-chat-quick-btn{
+    background:none;
+    border:1px solid var(--pulse-dim);
+    color:var(--pulse);
+    font-size:16px;
+    font-weight:bold;
+    width:28px;
+    height:28px;
+    border-radius:8px;
+    cursor:pointer;
+    line-height:1;
+  }
+
+  .chat-body{
+    flex:1;
+    overflow-y:auto;
+    padding:12px 16px 100px;
+    max-width:520px;
+    width:100%;
+    margin:0 auto;
+  }
+
+  .msg{
+    max-width:85%;
+    margin-bottom:14px;
+    padding:12px 14px;
+    border-radius:14px;
+    font-size:15px;
+    line-height:1.8;
+    white-space:pre-wrap;
+    animation:pop .25s ease;
+  }
+  @keyframes pop{
+    from{opacity:0; transform:translateY(6px);}
+    to{opacity:1; transform:translateY(0);}
+  }
+  .msg.user{
+    background:linear-gradient(90deg, var(--pulse-dim), var(--pulse));
+    color:#00251a;
+    margin-right:0;
+    margin-left:auto;
+    border-bottom-left-radius:4px;
+  }
+  .msg.bot{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-right:3px solid var(--pulse);
+    margin-left:0;
+    margin-right:auto;
+    border-bottom-right-radius:4px;
+  }
+  .msg-actions-row{
+    display:flex;
+    gap:4px;
+    margin-top:8px;
+    padding-top:6px;
+    border-top:1px solid var(--border);
+  }
+  .msg-action-btn{
+    background:none;
+    border:none;
+    color:var(--muted);
+    width:28px;
+    height:28px;
+    border-radius:6px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+  }
+  .msg-action-btn:active{background:rgba(0,230,168,.12);}
+  .msg-action-btn.active{color:var(--pulse);}
+  .msg-action-btn.done{color:var(--pulse);}
+  .feedback-toast{
+    position:fixed;
+    top:16px;
+    left:50%;
+    transform:translateX(-50%) translateY(-20px);
+    background:var(--card);
+    border:1px solid var(--pulse-dim);
+    color:var(--text);
+    padding:10px 18px;
+    border-radius:20px;
+    font-size:13px;
+    font-weight:bold;
+    box-shadow:0 6px 18px rgba(0,0,0,.3);
+    opacity:0;
+    transition:opacity .25s ease, transform .25s ease;
+    z-index:3000;
+    pointer-events:none;
+  }
+  .feedback-toast.show{
+    opacity:1;
+    transform:translateX(-50%) translateY(0);
+  }
+  .msg.typing{
+    display:inline-flex;
+    gap:5px;
+    align-items:center;
+    padding:14px 16px;
+  }
+  .msg.typing span{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--pulse);
+    animation:blink 1.2s infinite ease-in-out;
+  }
+  .msg.typing span:nth-child(2){animation-delay:.2s;}
+  .msg.typing span:nth-child(3){animation-delay:.4s;}
+  @keyframes blink{0%,80%,100%{opacity:.2;}40%{opacity:1;}}
+
+  .empty-hint{
+    text-align:center;
+    color:var(--muted);
+    font-size:13px;
+    margin-top:70px;
+    padding:0 20px;
+  }
+  .greeting-text{
+    font-size:20px;
+    font-weight:bold;
+    background:linear-gradient(90deg, var(--pulse), #7fffd4);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    margin-bottom:8px;
+  }
+  .greeting-sub{
+    color:var(--muted);
+    font-size:13px;
+  }
+
+  .msg-media{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-bottom:8px;
+  }
+  .code-block{
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:10px;
+    overflow-x:auto;
+    margin:6px 0;
+    direction:ltr;
+    text-align:left;
+  }
+  .code-block code{
+    font-family:'Consolas', 'Courier New', monospace;
+    font-size:12.5px;
+    color:#9fffd8;
+    white-space:pre;
+  }
+  .msg-media img{
+    width:70px;
+    height:70px;
+    object-fit:cover;
+    border-radius:8px;
+    border:1px solid rgba(255,255,255,.15);
+  }
+
+  .input-bar{
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    background:var(--bg2);
+    border-top:1px solid var(--border);
+    padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+  }
+  .input-inner{
+    max-width:520px;
+    margin:0 auto;
+    display:flex;
+    gap:8px;
+    align-items:flex-end;
+  }
+  .input-inner textarea{
+    flex:1;
+    resize:none;
+    max-height:100px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:14px;
+    color:var(--text);
+    caret-color:var(--pulse);
+    font-weight:500;
+    padding:12px;
+    font-family:inherit;
+    font-size:14px;
+  }
+  .input-inner textarea::placeholder{
+    color:var(--muted);
+    opacity:1;
+  }
+  .input-inner textarea:focus{outline:none;border-color:var(--pulse-dim);}
+  .send-circle{
+    background:linear-gradient(135deg, var(--pulse-dim), var(--pulse));
+    border:none;
+    color:#00251a;
+    width:46px;
+    height:46px;
+    border-radius:50%;
+    font-size:18px;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .send-circle:active{transform:scale(.95);}
+  .send-circle:disabled{opacity:.4;}
+
+  .mic-btn{
+    background:var(--card);
+    border:1px solid var(--border);
+    color:var(--text);
+    width:44px;
+    height:44px;
+    border-radius:50%;
+    font-size:17px;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .mic-btn.recording{
+    background:var(--danger);
+    border-color:var(--danger);
+    color:#fff;
+    animation:micPulse 1s infinite;
+  }
+  @keyframes micPulse{
+    0%,100%{transform:scale(1);}
+    50%{transform:scale(1.08);}
+  }
+
+  .scroll-bottom-btn{
+    position:fixed;
+    left:16px;
+    bottom:90px;
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    background:var(--card);
+    border:1px solid var(--border);
+    color:var(--text);
+    font-size:16px;
+    cursor:pointer;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    box-shadow:0 4px 12px rgba(0,0,0,.3);
+    z-index:40;
+  }
+  .scroll-bottom-btn.show{display:flex;}
+
+
+
+  /* ---------- attach button + menu ---------- */
+  .attach-wrap{
+    position:relative;
+    flex-shrink:0;
+  }
+  .attach-btn{
+    background:var(--card);
+    border:1px solid var(--border);
+    color:var(--pulse);
+    width:46px;
+    height:46px;
+    border-radius:50%;
+    font-size:22px;
+    cursor:pointer;
+    line-height:1;
+  }
+  .attach-btn:active{transform:scale(.95);}
+  .attach-btn.open{
+    background:var(--pulse);
+    color:#00251a;
+    transform:rotate(45deg);
+  }
+
+  .attach-menu{
+    position:absolute;
+    bottom:56px;
+    right:0;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:8px;
+    display:none;
+    flex-direction:column;
+    gap:4px;
+    min-width:170px;
+    box-shadow:0 8px 24px rgba(0,0,0,.4);
+  }
+  .attach-menu.open{display:flex;}
+  .attach-option{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:none;
+    border:none;
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:10px;
+    font-size:14px;
+    cursor:pointer;
+    text-align:right;
+    width:100%;
+  }
+  .attach-option:active{background:var(--card);}
+  .attach-option .ic{font-size:18px;}
+
+  .attach-chips{
+    max-width:520px;
+    margin:0 auto 8px;
+    display:flex;
+    gap:8px;
+    overflow-x:auto;
+    padding:0 2px;
+  }
+  .attach-chips:empty{display:none;}
+  .chip{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:6px 10px;
+    font-size:12px;
+    color:var(--muted);
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .chip img{
+    width:22px;height:22px;border-radius:50%;object-fit:cover;
+  }
+  .chip .x{
+    color:var(--danger);
+    cursor:pointer;
+    font-weight:bold;
+    margin-right:2px;
+  }
+
+  /* ---------- SPLASH SCREEN (star assembly) ---------- */
+  #splashScreen{
+    position:fixed;
+    inset:0;
+    background:radial-gradient(circle at 50% 45%, var(--bg2), var(--bg) 75%);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    z-index:50;
+    transition:opacity .7s ease;
+  }
+  #splashScreen.fade-out{opacity:0;}
+  #splashSvgWrap{
+    width:220px;
+    height:220px;
+  }
+  #splashSvgWrap svg{width:100%;height:100%;}
+  .spike{
+    fill:url(#spikeGrad);
+    stroke:#00251a;
+    stroke-width:0.6;
+    opacity:0;
+    transform:scale(0);
+    animation:spikeIn .5s cubic-bezier(.2,1.4,.4,1) forwards;
+  }
+  @keyframes spikeIn{
+    0%{opacity:0; transform:scale(0);}
+    60%{opacity:1; transform:scale(1.15);}
+    100%{opacity:1; transform:scale(1);}
+  }
+  .splash-title{
+    margin-top:18px;
+    font-size:20px;
+    font-weight:bold;
+    letter-spacing:1px;
+    color:var(--pulse);
+    opacity:0;
+    transition:opacity .6s ease;
+  }
+  .splash-title.show{opacity:1;}
+
+  #loginScreen{
+    opacity:0;
+    transition:opacity .6s ease;
+  }
+  #loginScreen.ready{opacity:1;}
+
+  /* ---------- menu button + conversations sidebar ---------- */
+  .menu-btn{
+    position:absolute;
+    right:14px;
+    top:18px;
+    background:none;
+    border:1px solid var(--border);
+    color:var(--pulse);
+    font-size:15px;
+    width:32px;
+    height:32px;
+    border-radius:8px;
+    cursor:pointer;
+  }
+
+  .sidebar-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.5);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .25s ease;
+    z-index:60;
+  }
+  .sidebar-overlay.open{opacity:1; pointer-events:auto;}
+
+  .sidebar-panel{
+    position:fixed;
+    top:0;
+    right:0;
+    bottom:0;
+    width:78%;
+    max-width:300px;
+    background:var(--bg2);
+    border-left:1px solid var(--border);
+    z-index:61;
+    display:flex;
+    flex-direction:column;
+    padding:16px;
+    transform:translateX(100%);
+    transition:transform .3s ease;
+  }
+  .sidebar-panel.open{transform:translateX(0);}
+
+  .sidebar-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:16px;
+    font-weight:bold;
+    color:var(--text);
+    margin-bottom:14px;
+  }
+  .sidebar-close{
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-size:16px;
+    cursor:pointer;
+  }
+
+  .new-chat-btn{
+    background:linear-gradient(90deg, var(--pulse-dim), var(--pulse));
+    border:none;
+    color:#00251a;
+    font-weight:bold;
+    font-size:13px;
+    padding:10px;
+    border-radius:10px;
+    cursor:pointer;
+    margin-bottom:14px;
+  }
+  .sidebar-search-wrap{
+    margin-bottom:10px;
+  }
+  .sidebar-search{
+    width:100%;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:10px;
+    color:var(--text);
+    padding:9px 12px;
+    font-size:13px;
+    font-family:inherit;
+  }
+  .sidebar-search::placeholder{color:var(--muted); opacity:1;}
+  .sidebar-search:focus{outline:none; border-color:var(--pulse-dim);}
+  .sidebar-list-title{
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:8px;
+    font-weight:bold;
+  }
+
+  .sidebar-list{
+    flex:1;
+    overflow-y:auto;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .session-item{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:6px 10px;
+    cursor:pointer;
+    text-align:right;
+  }
+  .session-item.active{
+    border-color:var(--pulse);
+  }
+  .session-item.pinned{
+    border-color:#c9a227;
+  }
+  .s-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:8px;
+  }
+  .s-info{
+    flex:1;
+    min-width:0;
+  }
+  .session-item .s-title{
+    font-size:12px;
+    color:var(--text);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    outline:none;
+  }
+  .session-item .s-title[contenteditable="true"]{
+    white-space:normal;
+    border-bottom:1px solid var(--pulse-dim);
+  }
+  .session-item .s-date{
+    font-size:10px;
+    color:var(--muted);
+    margin-top:2px;
+  }
+
+  .s-action-btn{
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-size:11px;
+    cursor:pointer;
+    padding:2px 4px;
+  }
+  .s-action-btn.danger{
+    color:var(--danger);
+  }
+  .sidebar-empty{
+    color:var(--muted);
+    font-size:12px;
+    text-align:center;
+    margin-top:20px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= SPLASH SCREEN ================= -->
+<div id="splashScreen">
+  <div id="splashSvgWrap">
+    <svg viewBox="0 0 200 200">
+      <defs>
+        <linearGradient id="spikeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#00e6a8"/>
+          <stop offset="100%" stop-color="#00a37a"/>
+        </linearGradient>
+      </defs>
+      <g id="splashSpikes"></g>
+    </svg>
+  </div>
+  <div class="splash-title" id="splashTitle">نبض AI</div>
+</div>
+
+<!-- ================= LOGIN SCREEN ================= -->
+<div id="loginScreen">
+  <div class="logo-title">نبض AI</div>
+  <div class="logo-sub">سجل دخولك حتى تبدأ تحچي وياي</div>
+
+  <div class="login-card">
+    <button class="login-btn" id="authLoginBtn">تسجيل دخول / إنشاء حساب</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+
+  <div class="pulse-line" style="max-width:360px;margin-top:24px;">
+    <svg viewBox="0 0 300 40" preserveAspectRatio="none">
+      <path class="pulse-path" d="M0,20 L60,20 L75,5 L90,35 L105,20 L300,20"/>
+    </svg>
+  </div>
+</div>
+
+<!-- ================= CHAT SCREEN ================= -->
+<div id="chatScreen">
+  <header class="chat-header">
+    <div class="header-left-btns">
+      <button class="logout-btn" id="logoutBtn">خروج</button>
+      <button class="new-chat-quick-btn" id="newChatQuickBtn">+</button>
+    </div>
+    <button class="menu-btn" id="menuBtn">☰</button>
+    <h1>نبض AI</h1>
+    <div class="user-tag" id="userTag"></div>
+  </header>
+
+  <div class="chat-body" id="chatBody">
+    <div class="empty-hint" id="emptyHint">اكتب سؤالك بالأسفل وابدأ الحچي 👇</div>
+  </div>
+
+  <div class="input-bar">
+    <div class="attach-chips" id="attachChips"></div>
+    <div class="input-inner">
+      <div class="attach-wrap">
+        <button class="attach-btn" id="attachBtn">+</button>
+        <div class="attach-menu" id="attachMenu">
+          <button class="attach-option" data-kind="file"><span class="ic">📁</span> ملفات</button>
+          <button class="attach-option" data-kind="image"><span class="ic">🖼️</span> صور</button>
+          <button class="attach-option" data-kind="video"><span class="ic">🎬</span> فيديوهات</button>
+        </div>
+      </div>
+      <textarea id="questionInput" rows="1" placeholder="اكتب سؤالك هنا..."></textarea>
+      <button class="mic-btn" id="micBtn" title="تسجيل صوتي">🎤</button>
+      <button class="send-circle" id="sendBtn">➤</button>
+    </div>
+  </div>
+
+  <button class="scroll-bottom-btn" id="scrollBottomBtn">↓</button>
+
+  <input type="file" id="fileInputFile" accept="*/*" style="display:none">
+  <input type="file" id="fileInputImage" accept="image/*" style="display:none">
+  <input type="file" id="fileInputVideo" accept="video/*" style="display:none">
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <div class="sidebar-panel" id="sidebarPanel">
+    <div class="sidebar-header">
+      <span>محادثاتي</span>
+      <button class="sidebar-close" id="sidebarClose">✕</button>
+    </div>
+    <div class="sidebar-search-wrap">
+      <input type="text" id="sidebarSearch" class="sidebar-search" placeholder="🔍 البحث في المحادثات">
+    </div>
+    <button class="new-chat-btn" id="newChatBtn">+ محادثة جديدة</button>
+    <div class="sidebar-list-title">المحادثات</div>
+    <div class="sidebar-list" id="sidebarList"></div>
+  </div>
+</div>
+
+<script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
+<script>
+/* ---------------- Auth0: تسجيل دخول حقيقي (بريد + گوگل) ---------------- */
+const AUTH0_DOMAIN = 'dev-m5swfdvw0ciq6kbw.us.auth0.com';
+const AUTH0_CLIENT_ID = 'tpc_hcm8L4LUwCpMfZ38DgcabH';
+let auth0Client = null;
+let auth0User = null;
+
+async function initAuth0(){
+  auth0Client = await createAuth0Client({
+    domain: AUTH0_DOMAIN,
+    clientId: AUTH0_CLIENT_ID,
+    authorizationParams: {
+      redirect_uri: window.location.origin + window.location.pathname
+    },
+    cacheLocation: 'localstorage'
+  });
+
+  // إذا راجعين من صفحة تسجيل الدخول (فيها code و state بالرابط)
+  const params = new URLSearchParams(window.location.search);
+  if(params.has('code') && params.has('state')){
+    try{
+      await auth0Client.handleRedirectCallback();
+    }catch(e){ /* رابط قديم أو منتهي، نتجاهله */ }
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
+  const isAuth = await auth0Client.isAuthenticated();
+  if(isAuth){
+    auth0User = await auth0Client.getUser();
+    startAuthenticatedSession();
+  }
+}
+
+/* ---------------- تخزين دائم حقيقي بالمتصفح (localStorage) ---------------- */
+/* يشتغل بأي مكان: متصفح، APK، ملف مفتوح مباشرة — عكس window.storage اللي يشتغل بس بمعاينة كلود */
+const nabdStorage = {
+  async get(key){
+    const v = localStorage.getItem(key);
+    if(v === null) throw new Error('key not found');
+    return {key, value: v};
+  },
+  async set(key, value){
+    localStorage.setItem(key, value);
+    return {key, value};
+  },
+  async delete(key){
+    localStorage.removeItem(key);
+    return {key, deleted: true};
+  }
+};
+
+/* ---------------- نبض AI: مرجع كلمات (يُحسب مرة وحدة بس) ---------------- */
+  const nabdCorpusText = `الطاقة من أهم الأشياء التي يحتاجها العالم الحديث لتشغيل الأجهزة والمصانع ووسائل النقل والمباني. توجد مصادر مختلفة للطاقة مثل الشمس والرياح والماء والوقود. تختلف هذه المصادر في طريقة استخدامها وتأثيرها على البيئة، ولذلك يهتم العلماء بتطوير وسائل أكثر كفاءة للاستفادة من الطاقة.
+
+الطاقة الشمسية تعتمد على ضوء الشمس ويمكن تحويلها إلى كهرباء باستخدام الألواح الشمسية. تنتشر هذه التقنية في أماكن كثيرة بسبب توفر أشعة الشمس خلال ساعات النهار. تحتاج الأنظمة الشمسية إلى تصميم مناسب وموقع جيد حتى تستفيد من كمية الضوء المتاحة.
+
+الرياح يمكن استخدامها أيضا لإنتاج الكهرباء من خلال توربينات تتحرك عندما تمر بها الرياح. سرعة الرياح واتجاهها وموقع التوربين عوامل تؤثر في كمية الطاقة المنتجة. هذه الطريقة لا تحتاج إلى حرق الوقود أثناء إنتاج الكهرباء، ولذلك تستخدم في بعض المناطق التي تتوفر فيها ظروف مناسبة.
+
+الماء مصدر مهم للطاقة ويمكن استخدام حركة الأنهار والسدود لتوليد الكهرباء. محطات الطاقة الكهرومائية تعتمد على حركة الماء لتشغيل التوربينات. تحتاج هذه المشاريع إلى دراسة دقيقة للبيئة والمياه والمنطقة قبل إنشائها.
+
+النقل الحديث يعتمد على السيارات والحافلات والقطارات والطائرات والسفن. كل وسيلة لها وظيفة مختلفة، وتطور وسائل النقل ساعد على تقليل الوقت اللازم للوصول بين الأماكن البعيدة. التكنولوجيا الحديثة تحاول أيضا تحسين كفاءة وسائل النقل وتقليل استهلاك الطاقة.
+
+السيارات الكهربائية تستخدم محركات تعمل بالطاقة المخزنة في البطاريات. تختلف عن السيارات التي تعتمد على الوقود في طريقة تشغيل المحرك ونظام الطاقة. تحتاج السيارات الكهربائية إلى شحن البطارية، وتختلف مدة الشحن حسب نوع السيارة والشاحن وحالة البطارية.
+
+البطاريات تستخدم في الهواتف والحواسيب والسيارات والأجهزة المحمولة. تخزن الطاقة وتوفرها عند الحاجة. مع تطور التقنية يعمل الباحثون على تطوير بطاريات ذات سعة أكبر ووزن أقل وسرعة شحن أفضل وعمر أطول.
+
+المصنع يجمع بين الآلات والعمال والمواد الخام والطاقة. يمكن استخدام الروبوتات في بعض المهام المتكررة، بينما يحتاج العمل الآخر إلى مهارات بشرية مثل المراقبة والتخطيط والصيانة. تنظيم المصنع يساعد على زيادة الإنتاج وتقليل الأخطاء.
+
+الصيانة مهمة للحفاظ على الأجهزة والآلات. الجهاز الذي تتم صيانته بشكل منتظم يمكن أن يعمل لفترة أطول ويكون أقل عرضة للمشكلات المفاجئة. تشمل الصيانة تنظيف الأجزاء وفحصها وتغيير القطع التالفة وتحديث الأنظمة عند الحاجة.
+
+الهندسة تستخدم العلوم والرياضيات لإنشاء حلول عملية. المهندس قد يعمل في البناء أو الكهرباء أو البرمجيات أو الميكانيكا أو الاتصالات. كل تخصص يحتاج إلى معرفة مختلفة، لكن جميع التخصصات تعتمد على التحليل والتخطيط والاختبار.
+
+المباني الحديثة تحتاج إلى تصميم يأخذ في الاعتبار المساحة والمواد والطاقة والسلامة. يمكن استخدام برامج الحاسوب لتصميم المبنى قبل تنفيذه ومراجعة التفاصيل واكتشاف بعض المشكلات. التصميم الجيد يساعد على تقليل الأخطاء أثناء البناء.
+
+الجسور تربط بين المناطق التي تفصلها الأنهار أو الطرق أو التضاريس المختلفة. تصميم الجسر يحتاج إلى حساب الأحمال والمواد والرياح والحركة والعوامل البيئية. السلامة هي أحد أهم العناصر التي يجب مراعاتها في أي مشروع هندسي.
+
+الطريق الجيد يساعد على تسهيل حركة الناس والبضائع. تخطيط الطرق يعتمد على حجم المرور والموقع وطبيعة الأرض والمناطق المحيطة. الإشارات المرورية والخطوط والعلامات تساعد السائقين على فهم الطريق واتخاذ القرارات المناسبة.
+
+الزراعة تعتمد على التربة والماء والضوء والحرارة والبذور والعمل. يستخدم المزارعون طرقا مختلفة لتحسين الإنتاج مثل الري المنظم واختيار أنواع مناسبة من النباتات وحماية المحاصيل من الآفات. التكنولوجيا أصبحت تساعد في مراقبة التربة والطقس واستخدام المياه بطريقة أفضل.
+
+النباتات تحتاج إلى الضوء والماء والعناصر الغذائية حتى تنمو. الجذور تمتص الماء والمواد من التربة، بينما تستخدم الأوراق الضوء في عملية صنع الغذاء. تختلف النباتات في احتياجاتها، ولذلك تحتاج كل منطقة زراعية إلى طريقة مناسبة للعناية بالمحاصيل.
+
+الحيوانات تعيش في بيئات مختلفة. بعضها يعيش في الصحارى، وبعضها في الغابات، وبعضها في البحار أو المناطق الباردة. لكل نوع خصائص تساعده على البقاء في بيئته، مثل شكل الجسم وطريقة الحصول على الغذاء وطريقة الحركة.
+
+البحر عالم واسع يحتوي على أنواع كثيرة من الكائنات. توجد الأسماك والشعاب المرجانية والكائنات الدقيقة والنباتات البحرية. تؤثر درجة حرارة الماء والملوحة والضوء في حياة الكائنات البحرية. حماية البحار مهمة للحفاظ على التنوع الحيوي والموارد الطبيعية.
+
+المحيطات تغطي جزءا كبيرا من سطح الأرض وتؤثر في المناخ والطقس. حركة المياه والتيارات البحرية تنقل الحرارة بين مناطق مختلفة. دراسة المحيطات تساعد العلماء على فهم البيئة والتغيرات التي تحدث على سطح الكوكب.
+
+القمر يظهر بأشكال مختلفة خلال الشهر بسبب تغير موقعه بالنسبة إلى الأرض والشمس. أحيانا يظهر جزء صغير من سطحه المضيء، وأحيانا يظهر نصفه أو معظم الجزء المضيء. هذه المراحل تسمى أطوار القمر.
+
+الشمس مصدر رئيسي للطاقة على الأرض. الضوء والحرارة اللذان يصلان منها يساعدان على استمرار الحياة. الأرض تدور حول الشمس، كما تدور حول نفسها، وينتج عن ذلك ظواهر مثل تعاقب الليل والنهار وتغير الفصول مع عوامل أخرى مرتبطة بميل محور الأرض.
+
+الأرض كوكب يحتوي على الماء والهواء واليابسة. الغلاف الجوي يحيط بالكوكب ويساعد على توفير ظروف مناسبة للحياة. توجد طبقات مختلفة في الغلاف الجوي وتحدث فيها ظواهر مثل السحب والرياح والأمطار.
+
+الطقس والمناخ مفهومان مرتبطان لكنهما ليسا الشيء نفسه. الطقس يصف حالة الجو خلال فترة قصيرة، بينما المناخ يصف الأنماط العامة للطقس خلال فترات طويلة. دراسة المناخ تحتاج إلى بيانات وملاحظات تمتد لسنوات.
+
+التغيرات البيئية يمكن أن تؤثر في الحيوانات والنباتات والإنسان. ارتفاع درجات الحرارة أو تغير الأمطار أو فقدان بعض المواطن الطبيعية قد يؤدي إلى تغيرات في الأنظمة البيئية. لذلك تهتم الدراسات العلمية بمراقبة البيئة وفهم أسباب التغيرات.
+
+إعادة التدوير تساعد على تقليل كمية بعض النفايات التي تصل إلى أماكن التخلص منها. يمكن إعادة استخدام بعض المواد مثل الورق والزجاج والمعادن والبلاستيك بطرق مختلفة. نجاح عملية التدوير يعتمد على جمع المواد وفرزها ومعالجتها بطريقة مناسبة.
+
+النظافة تساعد على المحافظة على البيئة والصحة العامة. التخلص من النفايات في الأماكن المخصصة يقلل من التلوث ويحافظ على شكل المدن. مشاركة المجتمع في المحافظة على الأماكن العامة تجعل البيئة أكثر راحة للجميع.
+
+المياه النظيفة مهمة للشرب والزراعة والصناعة والنظافة. تلوث مصادر المياه قد يؤثر في الإنسان والحيوان والنبات. معالجة المياه ومراقبة مصادرها تساعد على توفير مياه أكثر أمانا للاستخدامات المختلفة.
+
+الهواء يتكون من مجموعة من الغازات، وتحتاج الكائنات الحية إلى مكونات معينة منه للبقاء. يمكن أن تؤثر بعض الملوثات في جودة الهواء، لذلك تستخدم بعض المدن أجهزة لقياس مستوى الملوثات ومتابعة التغيرات.
+
+العلوم الطبية تعتمد على البحث والتجارب لفهم جسم الإنسان والأمراض وطرق الوقاية والعلاج. يعمل العلماء والأطباء والمختصون معا لدراسة المشكلات الصحية وتطوير طرق أفضل للعناية بالناس.
+
+المستشفيات تحتوي على أقسام مختلفة لكل منها وظيفة محددة. توجد أقسام للطوارئ والفحوصات والعمليات والعناية والرعاية العامة. يعمل فيها أطباء وممرضون وفنيون وإداريون وغيرهم من المختصين.
+
+الأجهزة الطبية تساعد الأطباء على معرفة معلومات عن جسم الإنسان. يمكن استخدام أجهزة التصوير والتحليل والمراقبة لمتابعة حالات مختلفة. تطورت هذه الأجهزة مع تطور التكنولوجيا وأصبحت بعض العمليات أكثر دقة.
+
+الوقاية جزء مهم من الاهتمام بالصحة. غسل اليدين والمحافظة على النظافة والحصول على الغذاء المناسب والنوم الجيد والحركة المنتظمة عادات تساعد على المحافظة على الصحة العامة.
+
+العقل يحتاج إلى الراحة مثلما يحتاج الجسم إلى الراحة. النوم يساعد على استعادة النشاط وتنظيم بعض العمليات المهمة في الجسم. تنظيم وقت النوم والاستيقاظ قد يساعد على تحسين التركيز خلال اليوم.
+
+الدراسة تحتاج إلى بيئة مناسبة. مكان هادئ وإضاءة جيدة وأدوات مرتبة يمكن أن تساعد على التركيز. تقسيم وقت الدراسة إلى فترات مع فواصل قصيرة قد يجعل التعلم أكثر راحة واستمرارية.
+
+الامتحانات وسيلة تستخدم لقياس مستوى فهم الطالب لبعض المواد. الاستعداد الجيد يبدأ قبل الامتحان بوقت كاف من خلال مراجعة الدروس وحل الأسئلة وتحديد النقاط التي تحتاج إلى مزيد من الفهم.
+
+حل المسائل يحتاج إلى قراءة السؤال جيدا وتحديد المعلومات المهمة. بعد ذلك يمكن اختيار القاعدة أو الطريقة المناسبة ثم تنفيذ الخطوات ومراجعة النتيجة. التسرع قد يؤدي إلى أخطاء يمكن تجنبها بالمراجعة.
+
+الملاحظات تساعد الطالب على تذكر المعلومات. يمكن كتابة الكلمات الأساسية والقواعد والأمثلة بطريقة مختصرة ومنظمة. استخدام العناوين والقوائم يجعل مراجعة الملاحظات أسهل.
+
+التعلم الجماعي قد يكون مفيدا عندما يناقش الطلاب موضوعا معينا ويشرح كل شخص ما فهمه. شرح المعلومة لشخص آخر يساعد أحيانا على اكتشاف نقاط لم تكن واضحة من قبل.
+
+اللغات تفتح أبوابا للتواصل مع أشخاص من ثقافات مختلفة. تعلم لغة جديدة يحتاج إلى الاستماع والقراءة والكتابة والممارسة. حفظ الكلمات مهم، لكن استخدامها في جمل ومواقف مختلفة يساعد على تثبيتها.
+
+الترجمة تنقل المعنى من لغة إلى أخرى، لكنها ليست دائما مجرد استبدال كلمة بكلمة. بعض الكلمات لها معان مختلفة حسب السياق، ولذلك يحتاج المترجم إلى فهم الجملة والموقف والثقافة.
+
+اللغة العربية تحتوي على أساليب متعددة للجملة والتعبير. يمكن تغيير ترتيب بعض الكلمات أو استخدام كلمات مختلفة للتعبير عن معنى قريب. القراءة في النصوص العربية تساعد على فهم هذه الأساليب.
+
+القاموس يساعد على معرفة معنى الكلمات وطريقة استخدامها. بعض القواميس تذكر أصل الكلمة وتصريفاتها وأمثلة عليها. استخدام القاموس أثناء التعلم يمكن أن يزيد المفردات ويحسن الفهم.
+
+الكتابة مهارة تتحسن بالممارسة. يمكن البدء بجمل بسيطة ثم الانتقال إلى فقرات أطول. مراجعة النص بعد كتابته تساعد على اكتشاف الأخطاء وتحسين ترتيب الأفكار.
+
+التحدث يحتاج إلى وضوح واستماع جيد. عندما يتحدث شخص مع الآخرين يجب أن يعطيهم فرصة للتعبير عن آرائهم. الحوار المتوازن يساعد على فهم الأفكار المختلفة ويقلل سوء الفهم.
+
+الصوت ينتج عن اهتزازات تنتقل عبر وسط مثل الهواء. تختلف الأصوات في التردد والشدة، وهذا يؤدي إلى اختلاف ما نسمعه. تستخدم تقنيات الصوت في الموسيقى والاتصالات والأجهزة الإلكترونية.
+
+الضوء نوع من الإشعاع يمكن للعين البشرية رؤية جزء منه. ينتقل الضوء بسرعة كبيرة، ويمكن أن ينعكس أو ينكسر عندما يمر بين مواد مختلفة. تستخدم هذه الخصائص في العدسات والكاميرات والأجهزة البصرية.
+
+الكاميرا تجمع الضوء لتكوين صورة. العدسة تساعد على تركيز الضوء، والحساس يحول المعلومات الضوئية إلى بيانات يمكن حفظها ومعالجتها. جودة الصورة تتأثر بالإضاءة والعدسة والحساس والإعدادات.
+
+الفيديو عبارة عن مجموعة من الصور تعرض بسرعة تجعل العين ترى الحركة بشكل مستمر. يضاف إلى الفيديو الصوت والمؤثرات والعناصر الأخرى. تستخدم الفيديوهات في التعليم والترفيه والإعلانات والتواصل.
+
+تحرير الصور يسمح بتعديل الإضاءة والألوان والحجم وإزالة بعض العناصر أو إضافة عناصر جديدة. البرامج الحديثة توفر أدوات كثيرة، لكن النتيجة الجيدة تعتمد أيضا على معرفة المستخدم بما يريد تحقيقه.
+
+التصميم يجمع بين الشكل والوظيفة. التصميم الجميل وحده لا يكفي إذا كان المنتج صعب الاستخدام. لذلك يهتم المصمم بتجربة المستخدم وترتيب العناصر والألوان والنصوص وطريقة التفاعل.
+
+الألوان لها تأثير بصري ويمكن استخدامها لتمييز العناصر. بعض الألوان تستخدم للتنبيه، وأخرى تستخدم للخلفيات أو لإظهار الحالة. اختيار الألوان يعتمد على نوع التصميم والجمهور والهدف.
+
+الخطوط تؤثر في سهولة قراءة النص. الخط المناسب يجب أن يكون واضحا ومناسبا لحجم الشاشة. استخدام عدد كبير من الخطوط في واجهة واحدة قد يجعل التصميم غير متناسق.
+
+الشعار يمثل هوية المشروع أو الشركة. الشعار الجيد يكون واضحا وقابلا للتعرف عليه حتى عندما يظهر بحجم صغير. يمكن أن يحتوي على رمز أو كلمة أو مجموعة من العناصر البصرية.
+
+العلامة التجارية تشمل أكثر من الشعار، فهي تشمل طريقة التواصل والألوان والأسلوب والتجربة التي يراها المستخدم. بناء هوية واضحة يساعد الناس على تذكر المشروع وتمييزه عن المشاريع الأخرى.
+
+التسويق يساعد على تعريف الناس بالمنتج أو الخدمة. يمكن استخدام المواقع ووسائل التواصل والإعلانات والمحتوى التعليمي للوصول إلى الجمهور. اختيار الطريقة يعتمد على نوع المنتج والجمهور والميزانية.
+
+المحتوى المفيد يمكن أن يجذب الأشخاص لأنه يقدم لهم معلومة أو حلا لمشكلة. المقالات والفيديوهات والصور والشروحات كلها أنواع من المحتوى. الجودة والاستمرارية تساعدان على بناء جمهور مهتم.
+
+المستخدمون يقدمون ملاحظات تساعد المطور على معرفة المشكلات والاحتياجات. قراءة الملاحظات وتحليلها يمكن أن تكشف عن ميزات مهمة أو أخطاء متكررة. ليس من الضروري تنفيذ كل طلب، لكن من المفيد فهم سبب الطلب.
+
+الاختبار مع مستخدمين حقيقيين قد يكشف مشكلات لا تظهر أثناء التطوير. شخص جديد قد لا يعرف المكان الذي يتوقعه المطور للزر أو قد يجد التعليمات غير واضحة. لذلك تساعد التجارب الواقعية على تحسين الواجهة.
+
+البرامج تحتاج إلى تحديثات مستمرة عندما تتغير الأنظمة أو تظهر مشكلات جديدة. قد تضيف التحديثات ميزات أو تصلح أخطاء أو تحسن الأمان. لكن قبل التحديث يجب التأكد من توافق النسخة الجديدة مع الجهاز والبرامج الأخرى.
+
+المكتبات البرمجية توفر وظائف جاهزة يمكن للمطور استخدامها بدلا من كتابة كل شيء من البداية. اختيار المكتبة المناسبة يوفر وقتا، لكن يجب معرفة طريقة استخدامها والتأكد من مصدرها وتوافقها مع المشروع.
+
+المشروع المفتوح المصدر يسمح للآخرين بالاطلاع على الكود والمساهمة في تطويره حسب شروط الترخيص. هذا النوع من المشاريع يساعد على مشاركة المعرفة والتعاون بين المطورين.
+
+الترخيص يحدد طريقة استخدام البرنامج أو المحتوى. بعض التراخيص تسمح بالاستخدام والتعديل والمشاركة، بينما تفرض تراخيص أخرى شروطا مختلفة. من المهم قراءة الترخيص قبل استخدام محتوى أو كود في مشروع.
+
+النسخ الاحتياطي يحمي الملفات من الضياع عند حدوث مشكلة في الجهاز. يمكن الاحتفاظ بنسخة في مكان آخر مثل وحدة تخزين خارجية أو خدمة تخزين مناسبة. من الأفضل اختبار النسخة الاحتياطية والتأكد من إمكانية استعادة الملفات.
+
+تنظيم الملفات يجعل العثور على المعلومات أسهل. يمكن إنشاء مجلدات حسب نوع المشروع أو التاريخ أو الاستخدام. تسمية الملفات بطريقة واضحة تقلل الوقت الذي يحتاجه المستخدم للبحث عنها.
+
+المشروع البرمجي قد يحتوي على ملفات كثيرة، ولذلك يحتاج إلى تنظيم جيد. يمكن فصل الكود عن الصور والبيانات والإعدادات والوثائق. هذا التنظيم يسهل التطوير والصيانة ويجعل المشروع أكثر وضوحا.
+
+الذكاء الاصطناعي يمكن استخدامه في تحليل النصوص وتصنيف المعلومات وتوليد الردود والمساعدة في البرمجة. لكن النتائج تحتاج إلى مراجعة لأن النموذج قد ينتج معلومة غير صحيحة أو يفهم السؤال بطريقة مختلفة.
+
+البيانات التدريبية تؤثر كثيرا في أداء النموذج. إذا كانت البيانات قليلة جدا أو متكررة أو غير متنوعة فقد يصبح النموذج محدودا في قدرته على التعامل مع الحالات الجديدة. البيانات المتنوعة تساعد على بناء نموذج قادر على فهم أمثلة أكثر.
+
+تنظيف البيانات يعني إزالة الأخطاء والتكرار والمعلومات غير المناسبة وترتيب المحتوى. قبل تدريب أي نموذج من الأفضل فحص البيانات ومعرفة مصدرها وصيغتها. جودة البيانات قد تكون أهم من زيادة حجمها فقط.
+
+النموذج يحتاج إلى اختبار بعد التدريب لمعرفة مدى قدرته على التعامل مع بيانات لم يرها أثناء التدريب. الاختبار يساعد على اكتشاف المشكلات ومعرفة المجالات التي يحتاج فيها النموذج إلى تحسين.
+
+التعلم الآلي يعتمد على الخوارزميات والبيانات لاكتشاف الأنماط. توجد طرق مختلفة للتعلم، منها التعلم تحت الإشراف والتعلم دون إشراف وطرق أخرى. اختيار الطريقة يعتمد على نوع المشكلة والبيانات المتاحة.
+
+النماذج الكبيرة قد تحتاج إلى موارد حاسوبية ضخمة أثناء التدريب، لكن بعض النماذج الصغيرة يمكن تشغيلها على أجهزة محدودة. تقليل حجم النموذج أو استخدام تقنيات مناسبة يمكن أن يساعد على تشغيله في بيئات أقل قوة.
+
+الحوسبة السحابية توفر موارد يمكن استخدامها عبر الإنترنت مثل المعالجة والتخزين وقواعد البيانات. يمكن للمطور استئجار موارد حسب الحاجة بدلا من شراء جهاز قوي دائما. تختلف الخدمات والأسعار حسب نوع الموارد والاستخدام.
+
+الشبكات تربط الأجهزة ببعضها وتسمح بتبادل البيانات. الإنترنت مثال ضخم على شبكة تربط ملايين الأجهزة والخدمات. سرعة الاتصال والاستقرار والأمان عوامل مهمة عند استخدام الشبكات.
+
+البيانات تنتقل عبر الشبكة في صورة حزم، وتستخدم بروتوكولات لتنظيم عملية الإرسال والاستقبال. إذا حدثت مشكلة يمكن لبعض الأنظمة إعادة إرسال البيانات أو التعامل مع الخطأ حسب نوع البروتوكول المستخدم.
+
+الموقع الإلكتروني يتكون عادة من ملفات وبرمجيات تعمل على خادم وتظهر للمستخدم عبر المتصفح. صفحات الويب يمكن أن تحتوي على نصوص وصور وأزرار ونماذج وعناصر تفاعلية.
+
+المتصفح برنامج يستخدم للوصول إلى المواقع وقراءة محتواها. توجد متصفحات مختلفة، لكنها تشترك في وظائف أساسية مثل عرض الصفحات وتشغيل بعض التطبيقات والتعامل مع الملفات والروابط.
+
+الخادم جهاز أو نظام يقدم خدمة لأجهزة أخرى عبر الشبكة. يمكن أن يكون الخادم مسؤولا عن موقع أو قاعدة بيانات أو ملفات أو تطبيق. يحتاج الخادم إلى إعداد مناسب وحماية ومراقبة حتى يعمل بشكل مستقر.
+
+البرمجيات تختلف عن الأجهزة، فالبرمجيات هي التعليمات والبرامج التي تعمل على الجهاز، بينما الأجهزة هي المكونات المادية. يحتاج الجهاز إلى الاثنين معا حتى يستطيع تنفيذ المهام.
+
+نظام التشغيل يدير موارد الجهاز ويوفر بيئة لتشغيل التطبيقات. الهواتف والحواسيب والأجهزة الأخرى تستخدم أنظمة تشغيل مختلفة. كل نظام يوفر أدوات وخصائص تساعد المستخدم والبرامج على العمل.
+
+التطبيق يتفاعل مع نظام التشغيل للوصول إلى بعض الموارد مثل التخزين والكاميرا والشبكة. بعض الأنظمة تطلب من التطبيق الحصول على إذن قبل الوصول إلى معلومات أو أجهزة معينة.
+
+الخصوصية تعني التحكم في المعلومات الشخصية ومعرفة كيفية استخدامها. من المفيد مراجعة أذونات التطبيقات وعدم منح صلاحيات غير ضرورية. المستخدم يستطيع أحيانا تغيير الأذونات من إعدادات الجهاز.
+
+المعلومات الشخصية قد تشمل الاسم ورقم الهاتف والصور والحسابات والموقع وغيرها. يجب التعامل معها بحذر وعدم مشاركتها مع جهات غير موثوقة. حماية الخصوصية تبدأ من معرفة المعلومات التي يتم مشاركتها.
+
+الأجهزة الذكية تتصل بالإنترنت وتستطيع تبادل المعلومات. بعض المنازل تحتوي على أجهزة إضاءة وكاميرات وأجهزة تحكم يمكن إدارتها من الهاتف. هذه التقنية توفر الراحة لكنها تحتاج إلى حماية جيدة للشبكة والحسابات.
+
+المنزل الذكي يعتمد على أجهزة مختلفة تعمل معا. يمكن برمجة بعض الأجهزة لتشغيل الإضاءة في أوقات معينة أو مراقبة بعض الظروف. نجاح النظام يعتمد على توافق الأجهزة وجودة الاتصال والإعدادات.
+
+التقنية ليست هدفا بحد ذاتها، بل أداة يمكن استخدامها لحل مشكلة أو تحسين عمل. اختيار التقنية المناسبة يعتمد على الحاجة والميزانية والموارد. أحيانا يكون الحل البسيط أفضل من النظام المعقد.
+
+البساطة تساعد على تقليل الأخطاء. عندما يحتوي المشروع على عدد كبير من الأجزاء يصبح من الصعب أحيانا معرفة سبب المشكلة. تصميم النظام بطريقة منظمة وتقليل التعقيد غير الضروري يجعل الصيانة أسهل.
+
+التطوير المستمر يعني أن المشروع لا يتوقف عند أول نسخة. يمكن جمع الملاحظات وتحليل الاستخدام ثم إضافة التحسينات تدريجيا. النسخة الجديدة يجب أن تحافظ على الوظائف الأساسية وتقدم فائدة واضحة.
+
+الهدف من المشروع هو تقديم قيمة للمستخدم. إذا كان التطبيق يوفر حلا واضحا لمشكلة حقيقية فقد يكون مفيدا حتى لو كان بسيطا. أما كثرة الميزات دون فائدة فقد تجعل المنتج أكثر تعقيدا دون تحسين حقيقي.
+
+كل فكرة تحتاج إلى اختبار قبل الاستثمار الكبير فيها. يمكن إنشاء نموذج أولي بسيط لمعرفة هل الفكرة قابلة للتنفيذ وهل المستخدمون مهتمون بها. إذا ظهرت مشكلة في البداية يمكن تعديل الفكرة بتكلفة أقل.
+
+النموذج الأولي ليس بالضرورة المنتج النهائي. هو نسخة مبسطة تستخدم لفهم الفكرة واختبارها. بعد الحصول على النتائج يمكن تطوير التصميم وإضافة الوظائف وتحسين الأداء.
+
+التخطيط للمشروع يساعد على تحديد الأولويات. يمكن اختيار أهم ثلاث أو أربع وظائف والبدء بها، ثم تأجيل الأشياء الثانوية. بهذه الطريقة يصبح من الأسهل الوصول إلى نسخة تعمل بدلا من البقاء فترة طويلة في مرحلة التخطيط.
+
+العمل على المشروع يحتاج إلى تسجيل التغييرات. يمكن كتابة ما تم إنجازه وما يحتاج إلى إصلاح وما يجب إضافته لاحقا. هذا يمنع نسيان الأفكار ويساعد على متابعة التقدم.
+
+التعلم من الأخطاء يجعل التجربة أكثر قيمة. عندما يحدث خطأ يمكن السؤال عن سببه وطريقة منعه مستقبلا. بعض الأخطاء تعلم الإنسان أكثر من النتيجة الصحيحة لأنها تجبره على فهم التفاصيل.
+
+النجاح يحتاج إلى وقت. المشاريع الكبيرة لا تبنى في يوم واحد، والمهارات لا تظهر خلال ساعات قليلة. الاستمرار بخطوات صغيرة يمكن أن يؤدي إلى نتيجة قوية مع مرور الأيام والأسابيع.
+
+الإنسان يستطيع تغيير خطته عندما يكتشف أن الطريق الحالي غير مناسب. تعديل الخطة ليس فشلا، بل قد يكون علامة على التعلم وفهم الظروف. المرونة تساعد على التعامل مع المشكلات والتغيرات.
+
+الهدف النهائي من التعلم هو استخدام المعرفة بطريقة مفيدة. يمكن تحويل المعلومة إلى مهارة، والمهارة إلى مشروع، والمشروع إلى أداة تساعد الآخرين. بهذه الطريقة تصبح المعرفة جزءا من عمل حقيقي له قيمة.`;
+  const nabdCorpusSentences = nabdCorpusText.split(/(?<=[.؟!])\s+/).map(s => s.trim()).filter(s => s.length > 10);
+
+  function findCorpusMatches(userText, maxResults){
+    maxResults = maxResults || 3;
+    const words = (userText || '').split(/\s+/).map(w => w.replace(/[^ء-ي0-9a-zA-Z]/g, '')).filter(w => w.length >= 3);
+    if(!words.length) return [];
+    const scored = [];
+    nabdCorpusSentences.forEach(sentence => {
+      let score = 0;
+      words.forEach(w => { if(sentence.includes(w)) score++; });
+      if(score > 0) scored.push({sentence, score});
+    });
+    scored.sort((a,b) => b.score - a.score);
+    return scored.slice(0, maxResults).map(s => s.sentence);
+  }
+
+
+/* ---------------- SPLASH: build spiky star gradually ---------------- */
+(function runSplash(){
+  const g = document.getElementById('splashSpikes');
+  const cx = 100, cy = 100;
+  const spikeCount = 16;
+  const svgns = 'http://www.w3.org/2000/svg';
+
+  for(let i = 0; i < spikeCount; i++){
+    const angle = (i * 360 / spikeCount) * Math.PI / 180;
+    const isLong = i % 2 === 0;
+    const radius = isLong ? 88 : 52;
+    const baseHalfWidth = isLong ? 11 : 7;
+
+    const tipX = cx + Math.cos(angle) * radius;
+    const tipY = cy + Math.sin(angle) * radius;
+    const perpAngle = angle + Math.PI / 2;
+    const baseX1 = cx + Math.cos(perpAngle) * baseHalfWidth;
+    const baseY1 = cy + Math.sin(perpAngle) * baseHalfWidth;
+    const baseX2 = cx - Math.cos(perpAngle) * baseHalfWidth;
+    const baseY2 = cy - Math.sin(perpAngle) * baseHalfWidth;
+
+    const poly = document.createElementNS(svgns, 'polygon');
+    poly.setAttribute('points', `${baseX1},${baseY1} ${tipX},${tipY} ${baseX2},${baseY2}`);
+    poly.setAttribute('class', 'spike');
+    poly.style.transformOrigin = cx + 'px ' + cy + 'px';
+    poly.style.animationDelay = (i * 65) + 'ms';
+    g.appendChild(poly);
+  }
+
+  const lastDelay = spikeCount * 65 + 500;
+  setTimeout(()=>{
+    const t = document.getElementById('splashTitle');
+    if(t) t.classList.add('show');
+  }, lastDelay);
+
+  setTimeout(()=>{
+    document.getElementById('splashScreen').classList.add('fade-out');
+    document.getElementById('loginScreen').classList.add('ready');
+  }, lastDelay + 900);
+
+  setTimeout(()=>{
+    const s = document.getElementById('splashScreen');
+    if(s) s.style.display = 'none';
+  }, lastDelay + 1600);
+})();
+
+/* ---------------- LOGIN ---------------- */
+const loginScreen = document.getElementById('loginScreen');
+const chatScreen = document.getElementById('chatScreen');
+const authLoginBtn = document.getElementById('authLoginBtn');
+const loginError = document.getElementById('loginError');
+const userTag = document.getElementById('userTag');
+const logoutBtn = document.getElementById('logoutBtn');
+
+let currentUsername = '';
+let currentSessionId = null;
+let sessionsList = []; // {id, title, updatedAt}
+
+authLoginBtn.addEventListener('click', async ()=>{
+  loginError.textContent = '';
+  authLoginBtn.disabled = true;
+  authLoginBtn.textContent = 'جاري التحويل...';
+  try{
+    await auth0Client.loginWithRedirect();
+  }catch(e){
+    loginError.textContent = 'صار خطأ بالاتصال، جرب مرة ثانية';
+    authLoginBtn.disabled = false;
+    authLoginBtn.textContent = 'تسجيل دخول / إنشاء حساب';
+  }
+});
+
+async function startAuthenticatedSession(){
+  const displayName = auth0User.name || auth0User.email || 'حيدر';
+  currentUsername = auth0User.sub || auth0User.email || displayName;
+  userTag.textContent = 'مرحبا ' + displayName;
+  loginScreen.classList.add('hide');
+  setTimeout(()=>{
+    chatScreen.classList.add('show');
+  }, 300);
+  await openLatestOrNewSession();
+}
+
+logoutBtn.addEventListener('click', ()=>{
+  chatScreen.classList.remove('show');
+  loginScreen.classList.remove('hide');
+  chatBody.innerHTML = '<div class="empty-hint" id="emptyHint">اكتب سؤالك بالأسفل وابدأ الحچي 👇</div>';
+  displayMessages = [];
+  history = [];
+  currentUsername = '';
+  currentSessionId = null;
+  sessionsList = [];
+  closeSidebar();
+  auth0Client.logout({ logoutParams: { returnTo: window.location.origin + window.location.pathname } });
+});
+
+initAuth0();
+
+/* ---------------- CHAT ---------------- */
+const chatBody = document.getElementById('chatBody');
+const questionInput = document.getElementById('questionInput');
+const sendBtn = document.getElementById('sendBtn');
+const micBtn = document.getElementById('micBtn');
+const scrollBottomBtn = document.getElementById('scrollBottomBtn');
+
+/* ---------------- تسجيل صوتي (Web Speech API) ---------------- */
+(function setupVoiceInput(){
+  const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRecognitionCtor){
+    micBtn.style.display = 'none';
+    return;
+  }
+  const recognition = new SpeechRecognitionCtor();
+  recognition.lang = 'ar-SA'; // مدعومة بمعظم المتصفحات أكثر من ar-IQ
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  let listening = false;
+
+  const micErrorMessages = {
+    'not-allowed': 'لازم تسمح للتطبيق يستخدم المايك من إعدادات المتصفح',
+    'no-speech': 'ما سمعت صوت، جرب مرة ثانية وحچي بوضوح',
+    'audio-capture': 'ماكو مايك متوفر بجهازك',
+    'network': 'مشكلة بالإنترنت، جرب مرة ثانية',
+    'language-not-supported': 'اللغة العربية مو مدعومة بهذا المتصفح'
+  };
+
+  micBtn.addEventListener('click', ()=>{
+    if(listening){
+      recognition.stop();
+      return;
+    }
+    try{
+      recognition.start();
+    }catch(e){
+      micBtn.title = 'صار خطأ، جرب مرة ثانية';
+    }
+  });
+
+  recognition.onstart = ()=>{
+    listening = true;
+    micBtn.classList.add('recording');
+    micBtn.title = 'يسمع الآن... اضغط للإيقاف';
+  };
+  recognition.onend = ()=>{
+    listening = false;
+    micBtn.classList.remove('recording');
+  };
+  recognition.onerror = (event)=>{
+    listening = false;
+    micBtn.classList.remove('recording');
+    micBtn.title = micErrorMessages[event.error] || ('صار خطأ: ' + event.error);
+    console.error('Speech recognition error:', event.error);
+  };
+  recognition.onresult = (event)=>{
+    const transcript = event.results[0][0].transcript;
+    questionInput.value = (questionInput.value ? questionInput.value + ' ' : '') + transcript;
+    questionInput.dispatchEvent(new Event('input'));
+    questionInput.focus();
+  };
+})();
+
+/* ---------------- زر النزول لآخر رسالة ---------------- */
+chatBody.addEventListener('scroll', ()=>{
+  const distanceFromBottom = chatBody.scrollHeight - chatBody.scrollTop - chatBody.clientHeight;
+  scrollBottomBtn.classList.toggle('show', distanceFromBottom > 200);
+});
+scrollBottomBtn.addEventListener('click', ()=>{
+  chatBody.scrollTop = chatBody.scrollHeight;
+});
+
+
+let history = []; // {role, content} — يترسل لكلود كسياق المحادثة
+
+let displayMessages = []; // {who, text} — نسخة مبسطة تنحفظ بالتخزين الدائم
+
+/* ---------- helpers لتخزين قائمة الجلسات ---------- */
+async function loadSessionsList(username){
+  try{
+    const res = await nabdStorage.get('sessions:' + username, false);
+    if(res && res.value){
+      const arr = JSON.parse(res.value);
+      if(Array.isArray(arr)) return arr;
+    }
+  }catch(e){ /* ماكو جلسات محفوظة، طبيعي */ }
+  return [];
+}
+
+async function saveSessionsList(){
+  if(!currentUsername) return;
+  try{
+    await nabdStorage.set('sessions:' + currentUsername, JSON.stringify(sessionsList), false);
+  }catch(e){ /* فشل مؤقت، تجاهله بصمت */ }
+}
+
+async function loadSessionMessages(username, id){
+  try{
+    const res = await nabdStorage.get('chat:' + username + ':' + id, false);
+    if(res && res.value){
+      const arr = JSON.parse(res.value);
+      if(Array.isArray(arr)) return arr;
+    }
+  }catch(e){ /* جلسة فاضية، طبيعي */ }
+  return [];
+}
+
+function sortSessions(){
+  sessionsList.sort((a,b)=>{
+    const ap = a.pinned ? 1 : 0, bp = b.pinned ? 1 : 0;
+    if(ap !== bp) return bp - ap;
+    return b.updatedAt - a.updatedAt;
+  });
+}
+
+const smartTitlePatterns = [
+  {keywords:['سلام عليكم','السلام عليكم'], title:'تحية وسلام'},
+  {keywords:['شلونك','شلونچ','شخبارك'], title:'شنو الأخبار'},
+  {keywords:['مرحبا','هلا'], title:'ترحيب'},
+  {keywords:['شكرا','شكراً','مشكور'], title:'شكر وتقدير'},
+  {keywords:['ساعدني','احتاج مساعدة','ممكن تساعدني'], title:'طلب مساعدة'},
+  {keywords:['كود','برمجة','اكتب لي كود'], title:'طلب كود برمجي'},
+  {keywords:['غلط','خطأ','مشكلة','ما يشتغل'], title:'حل مشكلة'},
+  {keywords:['تعبان','زعلان','حزين'], title:'كلام من القلب'}
+];
+
+function getSmartTitle(text){
+  if(!text) return 'محادثة جديدة';
+  const t = text.trim();
+  for(const p of smartTitlePatterns){
+    if(p.keywords.some(k => t.includes(k))) return p.title;
+  }
+  return t.slice(0,28);
+}
+
+async function saveChat(){
+  if(!currentUsername || !currentSessionId) return;
+  try{
+    await nabdStorage.set('chat:' + currentUsername + ':' + currentSessionId, JSON.stringify(displayMessages), false);
+  }catch(e){ /* فشل مؤقت بالحفظ، ما نوقف الشات */ }
+
+  const idx = sessionsList.findIndex(s=> s.id === currentSessionId);
+  if(idx >= 0){
+    if(!sessionsList[idx].titleManual){
+      const firstUserMsg = displayMessages.find(m=> m.who === 'user');
+      sessionsList[idx].title = firstUserMsg ? getSmartTitle(firstUserMsg.text) : 'محادثة جديدة';
+    }
+    sessionsList[idx].updatedAt = Date.now();
+  }else{
+    const firstUserMsg = displayMessages.find(m=> m.who === 'user');
+    sessionsList.unshift({
+      id: currentSessionId,
+      title: firstUserMsg ? getSmartTitle(firstUserMsg.text) : 'محادثة جديدة',
+      updatedAt: Date.now(),
+      pinned: false,
+      titleManual: false
+    });
+  }
+  sortSessions();
+  saveSessionsList();
+  renderSidebarList();
+}
+
+const greetings = [
+  'كيف يمكنني مساعدتك؟',
+  'مرحباً لنبدأ',
+  'ما الأخبار؟',
+  'جاهز عندما تكون انت جاهز!'
+];
+
+function renderTextWithCode(container, text){
+  const parts = text.split(/```/);
+  parts.forEach((part, i)=>{
+    if(i % 2 === 1){
+      let code = part;
+      const firstLineBreak = code.indexOf('\n');
+      if(firstLineBreak !== -1 && firstLineBreak < 20){
+        code = code.slice(firstLineBreak + 1);
+      }
+      const pre = document.createElement('pre');
+      pre.className = 'code-block';
+      const codeEl = document.createElement('code');
+      codeEl.textContent = code.trim();
+      pre.appendChild(codeEl);
+      container.appendChild(pre);
+    }else if(part){
+      const t = document.createElement('div');
+      t.textContent = part.trim();
+      t.style.whiteSpace = 'pre-wrap';
+      if(part.trim()) container.appendChild(t);
+    }
+  });
+}
+
+function renderMessagesToDom(messages){
+  chatBody.innerHTML = '';
+  if(!messages.length){
+    const g = greetings[Math.floor(Math.random() * greetings.length)];
+    const div = document.createElement('div');
+    div.className = 'empty-hint';
+    div.id = 'emptyHint';
+    div.innerHTML = '<div class="greeting-text">' + g + '</div>';
+    chatBody.appendChild(div);
+    return;
+  }
+  messages.forEach(m=>{
+    if(!m.id) m.id = 'm' + Date.now() + Math.random().toString(36).slice(2,7);
+    const div = document.createElement('div');
+    div.className = 'msg ' + m.who;
+    div.dataset.msgId = m.id;
+    if(m.media && m.media.length){
+      const mediaRow = document.createElement('div');
+      mediaRow.className = 'msg-media';
+      m.media.forEach(dataUrl=>{
+        const img = document.createElement('img');
+        img.src = dataUrl;
+        mediaRow.appendChild(img);
+      });
+      div.appendChild(mediaRow);
+    }
+    if(m.text){
+      if(m.who === 'bot'){
+        renderTextWithCode(div, m.text);
+      }else{
+        const t = document.createElement('div');
+        t.textContent = m.text;
+        div.appendChild(t);
+      }
+    }
+    if(m.who === 'bot'){
+      div.appendChild(buildMsgActionsRow(m));
+    }
+    chatBody.appendChild(div);
+  });
+  chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+async function openSession(id){
+  currentSessionId = id;
+  displayMessages = await loadSessionMessages(currentUsername, id);
+  history = displayMessages.map(m=> ({ role: m.who === 'user' ? 'user' : 'assistant', content: m.text }));
+  renderMessagesToDom(displayMessages);
+  pendingAttachments = [];
+  renderChips();
+}
+
+async function startNewSession(){
+  const id = Date.now();
+  sessionsList.unshift({id, title:'محادثة جديدة', updatedAt: Date.now(), pinned:false, titleManual:false});
+  await saveSessionsList();
+  currentSessionId = id;
+  displayMessages = [];
+  history = [];
+  renderMessagesToDom([]);
+  pendingAttachments = [];
+  renderChips();
+  renderSidebarList();
+}
+
+async function openLatestOrNewSession(){
+  sessionsList = await loadSessionsList(currentUsername);
+  if(sessionsList.length){
+    sortSessions();
+    await openSession(sessionsList[0].id);
+  }else{
+    await startNewSession();
+  }
+}
+
+/* ---------- الشريط الجانبي (قائمة المحادثات) ---------- */
+const menuBtn = document.getElementById('menuBtn');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
+const sidebarPanel = document.getElementById('sidebarPanel');
+const sidebarClose = document.getElementById('sidebarClose');
+const sidebarList = document.getElementById('sidebarList');
+const newChatBtn = document.getElementById('newChatBtn');
+const sidebarSearch = document.getElementById('sidebarSearch');
+sidebarSearch.addEventListener('input', ()=> renderSidebarList());
+
+function openSidebar(){
+  sidebarOverlay.classList.add('open');
+  sidebarPanel.classList.add('open');
+  renderSidebarList();
+}
+function closeSidebar(){
+  sidebarOverlay.classList.remove('open');
+  sidebarPanel.classList.remove('open');
+  sidebarSearch.value = '';
+}
+
+function relativeDate(ts){
+  const diff = Date.now() - ts;
+  const mins = Math.floor(diff/60000);
+  if(mins < 1) return 'الحين';
+  if(mins < 60) return 'قبل ' + mins + ' دقيقة';
+  const hrs = Math.floor(mins/60);
+  if(hrs < 24) return 'قبل ' + hrs + ' ساعة';
+  const days = Math.floor(hrs/24);
+  return 'قبل ' + days + ' يوم';
+}
+
+function renderSidebarList(){
+  sidebarList.innerHTML = '';
+  const query = (sidebarSearch.value || '').trim();
+  const filtered = query
+    ? sessionsList.filter(s => (s.title || '').includes(query))
+    : sessionsList;
+
+  if(!sessionsList.length){
+    sidebarList.innerHTML = '<div class="sidebar-empty">ماكو محادثات محفوظة</div>';
+    return;
+  }
+  if(!filtered.length){
+    sidebarList.innerHTML = '<div class="sidebar-empty">ماكو نتائج مطابقة</div>';
+    return;
+  }
+  filtered.forEach(s=>{
+    const item = document.createElement('div');
+    item.className = 'session-item' + (s.id === currentSessionId ? ' active' : '') + (s.pinned ? ' pinned' : '');
+
+    const top = document.createElement('div');
+    top.className = 's-top';
+
+    const info = document.createElement('div');
+    info.className = 's-info';
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 's-title';
+    titleDiv.textContent = (s.pinned ? '📌 ' : '') + (s.title || 'محادثة جديدة');
+    const dateDiv = document.createElement('div');
+    dateDiv.className = 's-date';
+    dateDiv.textContent = relativeDate(s.updatedAt);
+    info.appendChild(titleDiv);
+    info.appendChild(dateDiv);
+
+    top.appendChild(info);
+    item.appendChild(top);
+
+    item.addEventListener('click', async ()=>{
+      if(s.id !== currentSessionId){
+        await openSession(s.id);
+      }
+      closeSidebar();
+    });
+
+    attachSessionLongPress(item, s);
+    sidebarList.appendChild(item);
+  });
+}
+
+/* ---------------- SESSION LONG-PRESS MENU (ChatGPT-style) ---------------- */
+function closeSessionMenu(){
+  const old = document.getElementById('sessionContextMenu');
+  if(old) old.remove();
+}
+
+function showSessionContextMenu(s, x, y){
+  closeSessionMenu();
+
+  const menu = document.createElement('div');
+  menu.id = 'sessionContextMenu';
+  menu.className = 'gpt-context-menu';
+  const menuWidth = 190;
+  menu.style.left = Math.min(Math.max(x - menuWidth/2, 8), window.innerWidth - menuWidth - 8) + 'px';
+  menu.style.top = Math.min(y, window.innerHeight - 160) + 'px';
+
+  menu.innerHTML =
+    '<div class="gcm-item" data-act="export"><span class="gcm-icon">⬇️</span>تحميل كملف نصي</div>' +
+    '<div class="gcm-item" data-act="pin"><span class="gcm-icon">📌</span>' + (s.pinned ? 'إلغاء التثبيت' : 'تثبيت') + '</div>' +
+    '<div class="gcm-item" data-act="rename"><span class="gcm-icon">✏️</span>إعادة تسمية</div>' +
+    '<div class="gcm-sep"></div>' +
+    '<div class="gcm-item danger" data-act="delete"><span class="gcm-icon">🗑️</span>حذف</div>';
+  document.body.appendChild(menu);
+
+  const deleteItem = menu.querySelector('[data-act="delete"]');
+  let confirming = false;
+
+  menu.querySelectorAll('.gcm-item').forEach(el=>{
+    el.addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      const act = el.dataset.act;
+
+      if(act === 'export'){
+        closeSessionMenu();
+        const msgs = (s.id === currentSessionId) ? displayMessages : await loadSessionMessages(currentUsername, s.id);
+        const lines = msgs.map(m => (m.who === 'user' ? 'أنت: ' : 'نبض AI: ') + (m.text || ''));
+        const blob = new Blob([lines.join('\n\n')], {type:'text/plain;charset=utf-8'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = (s.title || 'محادثة') + '.txt';
+        a.click();
+        URL.revokeObjectURL(url);
+
+      }else if(act === 'pin'){
+        s.pinned = !s.pinned;
+        sortSessions();
+        await saveSessionsList();
+        renderSidebarList();
+        closeSessionMenu();
+
+      }else if(act === 'rename'){
+        closeSessionMenu();
+        const newTitle = prompt('إعادة تسمية المحادثة:', s.title || '');
+        if(newTitle !== null && newTitle.trim()){
+          s.title = newTitle.trim().slice(0,28);
+          s.titleManual = true;
+          await saveSessionsList();
+          renderSidebarList();
+        }
+
+      }else if(act === 'delete'){
+        if(!confirming){
+          confirming = true;
+          deleteItem.innerHTML = '<span class="gcm-icon">❗</span>تأكيد الحذف؟';
+          return;
+        }
+        try{
+          await nabdStorage.delete('chat:' + currentUsername + ':' + s.id, false);
+        }catch(err){ /* ماكو شي محفوظ أصلاً، طبيعي */ }
+        sessionsList = sessionsList.filter(x=> x.id !== s.id);
+        await saveSessionsList();
+        if(s.id === currentSessionId){
+          if(sessionsList.length){
+            sortSessions();
+            await openSession(sessionsList[0].id);
+          }else{
+            await startNewSession();
+          }
+        }
+        renderSidebarList();
+        closeSessionMenu();
+      }
+    });
+  });
+
+  setTimeout(()=>{
+    document.addEventListener('click', function onDocClick(){
+      closeSessionMenu();
+      document.removeEventListener('click', onDocClick);
+    }, {once:true});
+  }, 0);
+}
+
+function attachSessionLongPress(el, s){
+  let pressTimer;
+  let startX = 0, startY = 0;
+  const MOVE_THRESHOLD = 12; // بكسل — تجاهل رعشة الإصبع الطبيعية
+
+  const start = (x,y)=>{
+    startX = x; startY = y;
+    pressTimer = setTimeout(()=> showSessionContextMenu(s, x, y), 500);
+  };
+  const checkMove = (x,y)=>{
+    if(Math.abs(x - startX) > MOVE_THRESHOLD || Math.abs(y - startY) > MOVE_THRESHOLD){
+      clearTimeout(pressTimer);
+    }
+  };
+  const cancel = ()=> clearTimeout(pressTimer);
+
+  el.addEventListener('touchstart', (e)=>{
+    const t = e.touches[0];
+    start(t.pageX, t.pageY);
+  }, {passive:true});
+  el.addEventListener('touchmove', (e)=>{
+    const t = e.touches[0];
+    checkMove(t.pageX, t.pageY);
+  }, {passive:true});
+  el.addEventListener('touchend', cancel);
+
+  el.addEventListener('mousedown', (e)=> start(e.pageX, e.pageY));
+  el.addEventListener('mousemove', (e)=> checkMove(e.pageX, e.pageY));
+  el.addEventListener('mouseup', cancel);
+  el.addEventListener('mouseleave', cancel);
+
+  el.addEventListener('contextmenu', (e)=> e.preventDefault());
+}
+
+
+menuBtn.addEventListener('click', openSidebar);
+sidebarClose.addEventListener('click', closeSidebar);
+sidebarOverlay.addEventListener('click', closeSidebar);
+newChatBtn.addEventListener('click', async ()=>{
+  await startNewSession();
+  closeSidebar();
+});
+
+const newChatQuickBtn = document.getElementById('newChatQuickBtn');
+newChatQuickBtn.addEventListener('click', async ()=>{
+  await startNewSession();
+});
+
+/* ---------------- ATTACHMENTS ---------------- */
+const attachBtn = document.getElementById('attachBtn');
+const attachMenu = document.getElementById('attachMenu');
+const attachChips = document.getElementById('attachChips');
+const fileInputFile = document.getElementById('fileInputFile');
+const fileInputImage = document.getElementById('fileInputImage');
+const fileInputVideo = document.getElementById('fileInputVideo');
+
+let pendingAttachments = []; // {id, kind, label, thumb, blocks:[{type:'image'|'document', media_type, data}], noteText}
+
+attachBtn.addEventListener('click', ()=>{
+  attachMenu.classList.toggle('open');
+  attachBtn.classList.toggle('open');
+});
+
+document.querySelectorAll('.attach-option').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const kind = btn.dataset.kind;
+    attachMenu.classList.remove('open');
+    attachBtn.classList.remove('open');
+    if(kind === 'file') fileInputFile.click();
+    if(kind === 'image') fileInputImage.click();
+    if(kind === 'video') fileInputVideo.click();
+  });
+});
+
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const r = new FileReader();
+    r.onload = ()=> resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+function renderChips(){
+  attachChips.innerHTML = '';
+  pendingAttachments.forEach(att=>{
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    if(att.thumb){
+      const img = document.createElement('img');
+      img.src = att.thumb;
+      chip.appendChild(img);
+    }
+    const label = document.createElement('span');
+    label.textContent = att.label;
+    chip.appendChild(label);
+    const x = document.createElement('span');
+    x.className = 'x';
+    x.textContent = '✕';
+    x.addEventListener('click', ()=>{
+      pendingAttachments = pendingAttachments.filter(a=>a.id !== att.id);
+      renderChips();
+    });
+    chip.appendChild(x);
+    attachChips.appendChild(chip);
+  });
+}
+
+/* صورة: ترسل مباشرة لكلود كصورة */
+fileInputImage.addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const dataUrl = await fileToBase64(file);
+  const base64 = dataUrl.split(',')[1];
+  pendingAttachments.push({
+    id: Date.now(),
+    kind: 'image',
+    label: file.name.length > 16 ? file.name.slice(0,14)+'…' : file.name,
+    thumb: dataUrl,
+    blocks: [{type:'image', media_type: file.type || 'image/jpeg', data: base64}]
+  });
+  renderChips();
+  fileInputImage.value = '';
+});
+
+/* فيديو: نسحب لقطات ونرسلها كصور */
+fileInputVideo.addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+
+  const video = document.createElement('video');
+  video.src = URL.createObjectURL(file);
+  video.muted = true;
+  video.playsInline = true;
+  await new Promise(res=> video.addEventListener('loadedmetadata', res, {once:true}));
+
+  const duration = video.duration;
+  const frameCount = 4;
+  const times = [];
+  for(let i=1;i<=frameCount;i++) times.push((duration*i)/(frameCount+1));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 480;
+  canvas.height = Math.round(480 * (video.videoHeight / video.videoWidth || 0.75));
+  const ctx = canvas.getContext('2d');
+
+  const blocks = [];
+  let firstThumb = null;
+  for(const t of times){
+    await new Promise(res=>{
+      video.currentTime = t;
+      video.addEventListener('seeked', function onSeek(){
+        video.removeEventListener('seeked', onSeek);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        if(!firstThumb) firstThumb = dataUrl;
+        blocks.push({type:'image', media_type:'image/jpeg', data: dataUrl.split(',')[1]});
+        res();
+      }, {once:true});
+    });
+  }
+
+  pendingAttachments.push({
+    id: Date.now(),
+    kind: 'video',
+    label: 'فيديو (' + frameCount + ' لقطات)',
+    thumb: firstThumb,
+    blocks: blocks
+  });
+  renderChips();
+  fileInputVideo.value = '';
+});
+
+/* ملفات عامة: PDF ترسل كمستند، غيرها بس نذكر اسمها بالسؤال */
+fileInputFile.addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+
+  if(file.type === 'application/pdf'){
+    const dataUrl = await fileToBase64(file);
+    const base64 = dataUrl.split(',')[1];
+    pendingAttachments.push({
+      id: Date.now(),
+      kind: 'file',
+      label: file.name.length > 16 ? file.name.slice(0,14)+'…' : file.name,
+      thumb: null,
+      blocks: [{type:'document', media_type:'application/pdf', data: base64}]
+    });
+  } else {
+    pendingAttachments.push({
+      id: Date.now(),
+      kind: 'file',
+      label: file.name.length > 16 ? file.name.slice(0,14)+'…' : file.name,
+      thumb: null,
+      blocks: [],
+      noteText: '[ملف مرفق: ' + file.name + ' — هذا النوع من الملفات ما أكدر أفتحه بعد، بس أعرف اسمه]'
+    });
+  }
+  renderChips();
+  fileInputFile.value = '';
+});
+
+questionInput.addEventListener('input', ()=>{
+  questionInput.style.height = 'auto';
+  questionInput.style.height = Math.min(questionInput.scrollHeight, 100) + 'px';
+});
+
+questionInput.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+sendBtn.addEventListener('click', sendMessage);
+
+function clearEmptyHint(){
+  const hint = document.getElementById('emptyHint');
+  if(hint) hint.remove();
+}
+
+function addMessage(text, who, media){
+  clearEmptyHint();
+  const msgId = 'm' + Date.now() + Math.random().toString(36).slice(2,7);
+  const div = document.createElement('div');
+  div.className = 'msg ' + who;
+  div.dataset.msgId = msgId;
+  if(media && media.length){
+    const mediaRow = document.createElement('div');
+    mediaRow.className = 'msg-media';
+    media.forEach(dataUrl=>{
+      const img = document.createElement('img');
+      img.src = dataUrl;
+      mediaRow.appendChild(img);
+    });
+    div.appendChild(mediaRow);
+  }
+  if(text){
+    if(who === 'bot'){
+      renderTextWithCode(div, text);
+    }else{
+      const t = document.createElement('div');
+      t.textContent = text;
+      div.appendChild(t);
+    }
+  }
+  chatBody.appendChild(div);
+  chatBody.scrollTop = chatBody.scrollHeight;
+  const entry = {id: msgId, who, text};
+  if(media && media.length) entry.media = media;
+  displayMessages.push(entry);
+  if(who === 'bot'){
+    div.appendChild(buildMsgActionsRow(entry));
+  }
+  saveChat();
+  return div;
+}
+
+/* ---------------- أزرار أسفل ردود نبض AI (نسخ / إعادة إرسال / لايك / ديسلايك) ---------------- */
+
+
+/* ---------------- أزرار تحت رد نبض AI (نسخ / إعادة إرسال / لايك / ديسلايك) ---------------- */
+/* ---------------- نسخ نص (مع بديل احتياطي إذا Clipboard API ما تشتغل) ---------------- */
+function copyTextToClipboard(text, callback){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(
+      ()=> callback(true),
+      ()=> fallbackCopy(text, callback)
+    );
+  }else{
+    fallbackCopy(text, callback);
+  }
+}
+function fallbackCopy(text, callback){
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    ta.style.top = '0';
+    ta.style.left = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    callback(ok);
+  }catch(e){
+    callback(false);
+  }
+}
+
+const msgActionIcons = {
+  copy: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+  retry: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>',
+  like: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>',
+  dislike: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M17 2h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"/></svg>'
+};
+
+function showFeedbackToast(){
+  const old = document.getElementById('feedbackToast');
+  if(old) old.remove();
+  const toast = document.createElement('div');
+  toast.id = 'feedbackToast';
+  toast.className = 'feedback-toast';
+  toast.textContent = 'نشكرك على ملاحظتك! 💚';
+  document.body.appendChild(toast);
+  requestAnimationFrame(()=> toast.classList.add('show'));
+  setTimeout(()=>{
+    toast.classList.remove('show');
+    setTimeout(()=> toast.remove(), 300);
+  }, 1800);
+}
+
+function buildMsgActionsRow(entry){
+  const row = document.createElement('div');
+  row.className = 'msg-actions-row';
+
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'msg-action-btn';
+  copyBtn.innerHTML = msgActionIcons.copy;
+  copyBtn.title = 'نسخ';
+  copyBtn.addEventListener('click', ()=>{
+    copyTextToClipboard(entry.text || '', (ok)=>{
+      if(ok){
+        copyBtn.classList.add('done');
+        setTimeout(()=> copyBtn.classList.remove('done'), 1200);
+      }else{
+        copyBtn.title = 'ما گدرت أنسخ، جرب تختار النص يدوياً';
+      }
+    });
+  });
+
+  const retryBtn = document.createElement('button');
+  retryBtn.className = 'msg-action-btn';
+  retryBtn.innerHTML = msgActionIcons.retry;
+  retryBtn.title = 'إعادة الإرسال';
+  retryBtn.addEventListener('click', ()=> regenerateFromMessage(entry.id));
+
+  const likeBtn = document.createElement('button');
+  likeBtn.className = 'msg-action-btn' + (entry.feedback === 'like' ? ' active' : '');
+  likeBtn.innerHTML = msgActionIcons.like;
+  likeBtn.title = 'عجبني';
+  likeBtn.style.display = (entry.feedback === 'dislike') ? 'none' : '';
+
+  const dislikeBtn = document.createElement('button');
+  dislikeBtn.className = 'msg-action-btn' + (entry.feedback === 'dislike' ? ' active' : '');
+  dislikeBtn.innerHTML = msgActionIcons.dislike;
+  dislikeBtn.title = 'ما عجبني';
+  dislikeBtn.style.display = (entry.feedback === 'like') ? 'none' : '';
+
+  function applyFeedbackUI(){
+    likeBtn.classList.toggle('active', entry.feedback === 'like');
+    dislikeBtn.classList.toggle('active', entry.feedback === 'dislike');
+    if(entry.feedback === 'like'){
+      likeBtn.style.display = '';
+      dislikeBtn.style.display = 'none';
+      showFeedbackToast();
+    }else if(entry.feedback === 'dislike'){
+      likeBtn.style.display = 'none';
+      dislikeBtn.style.display = '';
+      showFeedbackToast();
+    }else{
+      likeBtn.style.display = '';
+      dislikeBtn.style.display = '';
+    }
+  }
+
+  likeBtn.addEventListener('click', ()=>{
+    entry.feedback = entry.feedback === 'like' ? null : 'like';
+    saveChat();
+    applyFeedbackUI();
+  });
+  dislikeBtn.addEventListener('click', ()=>{
+    entry.feedback = entry.feedback === 'dislike' ? null : 'dislike';
+    saveChat();
+    applyFeedbackUI();
+  });
+
+  row.appendChild(copyBtn);
+  row.appendChild(retryBtn);
+  row.appendChild(likeBtn);
+  row.appendChild(dislikeBtn);
+  return row;
+}
+
+async function regenerateFromMessage(botMsgId){
+  const idx = displayMessages.findIndex(m => m.id === botMsgId);
+  if(idx < 1) return;
+  let userIdx = idx - 1;
+  while(userIdx >= 0 && displayMessages[userIdx].who !== 'user') userIdx--;
+  if(userIdx < 0) return;
+  const userText = displayMessages[userIdx].text || '';
+
+  displayMessages = displayMessages.slice(0, idx);
+  history = displayMessages.map(m=> ({ role: m.who === 'user' ? 'user' : 'assistant', content: m.text }));
+  renderMessagesToDom(displayMessages);
+  saveChat();
+
+  const typingEl = addTyping();
+  try{
+    const reply = await getBotReply(userText);
+    typingEl.remove();
+    addMessage(reply, 'bot');
+    history.push({role:'assistant', content: reply});
+  }catch(e){
+    typingEl.remove();
+    addMessage('صار خطأ بالاتصال، جرب مرة ثانية.', 'bot');
+  }
+}
+
+function addTyping(){
+  clearEmptyHint();
+  const div = document.createElement('div');
+  div.className = 'msg bot typing';
+  div.innerHTML = '<span></span><span></span><span></span>';
+  chatBody.appendChild(div);
+  chatBody.scrollTop = chatBody.scrollHeight;
+  return div;
+}
+
+async function callClaudeAPI(systemPrompt, recentHistory){
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      model:'claude-sonnet-4-6',
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: recentHistory
+    })
+  });
+  if(!response.ok) throw new Error('bad status ' + response.status);
+  return response.json();
+}
+
+async function getBotReply(userTextForMatching){
+  const nabdMatchedContext = findCorpusMatches(userTextForMatching || '').join(' ');
+  const systemPrompt = 'اسمك نبض AI. جاوب دائماً باللهجة العراقية، بسيط وواضح، مثل ما تحجي لولد عمره 10 سنوات مهتم بالتكنولوجيا والذكاء الاصطناعي وتطوير التطبيقات. تكدر تكتب أكواد برمجية كاملة وتشرحها وتساعد بمشاريع مثل تطبيقات الموبايل والمواقع، واستخدم كتل كود Markdown (```) لأي كود. إذا أي شخص سألك مين صنعك، مين طورك، شكو وراك، أو أي سؤال شبيه عن مصدرك أو الجهة اللي سوتك، جاوب بس: "أني صنعت بواسطة المطور حيدر نبض". لا تذكر أي جهة ثانية ولا تشرح أكثر من هذا الجواب بهذا الموضوع بالذات.' + (nabdMatchedContext ? ('\n\nملاحظة: هذي جمل من ملف مرجعي مرتبطة بكلمات بسؤال المستخدم، تكدر تستخدمها كخلفية إذا مفيدة، وماكو داعي تقتبسها حرفياً: ' + nabdMatchedContext) : '') + ';';
+
+  const recentHistory = history.slice(-20);
+
+  let data;
+  try{
+    data = await callClaudeAPI(systemPrompt, recentHistory);
+  }catch(firstErr){
+    data = await callClaudeAPI(systemPrompt, recentHistory); // محاولة ثانية تلقائية
+  }
+
+  let reply = '';
+  if(data.content){
+    reply = data.content.map(b=> b.text || '').join('\n').trim();
+  }
+  return reply || 'ما جاني جواب واضح، جرب مرة ثانية.';
+}
+
+async function sendMessage(){
+  const text = questionInput.value.trim();
+  if(!text && pendingAttachments.length === 0) return;
+
+  /* شكل الفقاعة اللي تنعرض بالشات */
+  let bubbleText = text;
+  const thumbsForSave = [];
+  if(pendingAttachments.length){
+    const labels = pendingAttachments.map(a=>{
+      if(a.thumb) thumbsForSave.push(a.thumb);
+      if(a.kind === 'image') return '🖼️ ' + a.label;
+      if(a.kind === 'video') return '🎬 ' + a.label;
+      return '📁 ' + a.label;
+    }).join('  ');
+    bubbleText = (bubbleText ? bubbleText + '\n' : '') + labels;
+  }
+  addMessage(bubbleText, 'user', thumbsForSave);
+
+  /* شكل المحتوى اللي يترسل فعلياً لكلود */
+  let contentForApi;
+  if(pendingAttachments.length === 0){
+    contentForApi = text;
+  }else{
+    const blocks = [];
+    let extraNotes = '';
+    pendingAttachments.forEach(att=>{
+      if(att.blocks && att.blocks.length){
+        att.blocks.forEach(b=>{
+          blocks.push({type:b.type, source:{type:'base64', media_type:b.media_type, data:b.data}});
+        });
+      }
+      if(att.noteText) extraNotes += att.noteText + '\n';
+    });
+    const finalText = (extraNotes ? extraNotes : '') + (text || 'اشرحلي هذا المرفق.');
+    blocks.push({type:'text', text: finalText});
+    contentForApi = blocks;
+  }
+  history.push({role:'user', content: contentForApi});
+
+  pendingAttachments = [];
+  renderChips();
+  questionInput.value = '';
+  questionInput.style.height = 'auto';
+  sendBtn.disabled = true;
+
+  const typingEl = addTyping();
+
+  try{
+    const reply = await getBotReply(text);
+    typingEl.remove();
+    addMessage(reply, 'bot');
+    history.push({role:'assistant', content: reply});
+
+  }catch(err){
+    typingEl.remove();
+    addMessage('صار خطأ بالاتصال، جرب مرة ثانية.', 'bot');
+    console.error(err);
+  }finally{
+    sendBtn.disabled = false;
+  }
+}
+</script>
+
+</body>
+</html>
